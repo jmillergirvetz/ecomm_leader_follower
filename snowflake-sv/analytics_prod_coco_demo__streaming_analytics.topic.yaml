@@ -256,59 +256,6 @@ views:
     table_name: USERS
 
     dimensions:
-      age:
-        sql: '"AGE"'
-        description: User age in years
-
-      is_active:
-        sql: '"IS_ACTIVE" = TRUE'
-        description: User currently has an active subscription
-        hidden: true
-
-      is_churned:
-        sql: ${analytics_prod_coco_demo__streaming_analytics__users.canceled_date} IS
-          NOT NULL
-        description: User has canceled their subscription
-        hidden: true
-
-      lifetime_streams:
-        sql: '"LIFETIME_STREAMS"'
-        description: Total streams since account creation
-
-      monthly_listening_hours:
-        sql: '"MONTHLY_LISTENING_HOURS"'
-        description: Monthly listening hours
-
-      tenure_days:
-        sql: DATEDIFF(DAY,
-          ${analytics_prod_coco_demo__streaming_analytics__users.signup_date},
-          COALESCE(${analytics_prod_coco_demo__streaming_analytics__users.canceled_date},
-          CURRENT_DATE))
-        description: Days between signup and cancellation (or today if still active)
-
-      age_bucket:
-        sql: CASE WHEN ${analytics_prod_coco_demo__streaming_analytics__users.age} < 18
-          THEN 'Under 18' WHEN
-          ${analytics_prod_coco_demo__streaming_analytics__users.age} < 25 THEN
-          '18-24' WHEN
-          ${analytics_prod_coco_demo__streaming_analytics__users.age} < 35 THEN
-          '25-34' WHEN
-          ${analytics_prod_coco_demo__streaming_analytics__users.age} < 45 THEN
-          '35-44' WHEN
-          ${analytics_prod_coco_demo__streaming_analytics__users.age} < 55 THEN
-          '45-54' ELSE '55+' END
-        description: Demographic age cohort for listener segmentation
-        synonyms: [ age group, demographic ]
-
-      canceled_date:
-        sql: '"CANCELED_DATE"'
-        description: Date subscription was canceled (null if still active)
-
-      cancel_reason:
-        sql: '"CANCEL_REASON"'
-        description: "Why the user canceled: price, content, switched, other"
-        synonyms: [ churn reason ]
-
       city:
         sql: '"CITY"'
         description: User city
@@ -318,69 +265,13 @@ views:
         description: User country
         synonyms: [ location, region ]
 
-      device_type:
-        sql: '"DEVICE_TYPE"'
-        description: "Primary listening device: mobile, desktop, smart_speaker, tablet"
-        synonyms: [ device, platform ]
-
       gender:
         sql: '"GENDER"'
         description: User gender
 
-      referral_source:
-        sql: '"REFERRAL_SOURCE"'
-        description: How the user discovered the platform
-        synonyms: [ acquisition channel, source ]
-
-      signup_date:
-        sql: '"SIGNUP_DATE"'
-        description: When the user created their account
-
-      tier:
-        sql: '"TIER"'
-        description: "User subscription level: free, premium, family"
-        synonyms: [ membership, plan, subscription ]
-
-      username:
-        sql: '"USERNAME"'
-        description: User display name
-
-      user_id:
-        sql: '"USER_ID"'
-        description: Unique user identifier
-
     measures:
-      active_users:
-        sql: COUNT(CASE WHEN
-          ${analytics_prod_coco_demo__streaming_analytics__users.is_active} =
-          TRUE THEN 1 ELSE NULL END)
-        description: Users with an active subscription
-        synonyms: [ active subscribers, current users ]
-
-      avg_monthly_listening_hours:
-        sql: AVG(${analytics_prod_coco_demo__streaming_analytics__users.monthly_listening_hours})
-        description: Average monthly listening hours per user
-        synonyms: [ avg engagement, listening depth ]
-
-      avg_tenure_days:
-        sql: AVG(DATEDIFF(DAY,
-          ${analytics_prod_coco_demo__streaming_analytics__users.signup_date},
-          COALESCE(${analytics_prod_coco_demo__streaming_analytics__users.canceled_date},
-          CURRENT_DATE)))
-        description: Average days a user stays on the platform before churning or to date
-        synonyms: [ avg lifetime, retention duration ]
-
-      churned_users:
-        sql: COUNT(CASE WHEN
-          ${analytics_prod_coco_demo__streaming_analytics__users.canceled_date}
-          IS NOT NULL THEN 1 ELSE NULL END)
-        description: Users who have canceled their subscription
-        synonyms: [ canceled users, lost users ]
-
-      total_users:
-        sql: COUNT(*)
-        description: Total user accounts in the platform
-        synonyms: [ audience size, subscriber count, user count ]
+      count:
+        aggregate_type: count
 
     filters:
       is_active__filter:
@@ -388,14 +279,12 @@ views:
         label: Is Active
         group_label: Filters
         description: User currently has an active subscription
-        bind_to: [ is_active ]
 
       is_churned__filter:
         type: boolean
         label: Is Churned
         group_label: Filters
         description: User has canceled their subscription
-        bind_to: [ is_churned ]
 
 relationships:
   - join_from_view: analytics_prod_coco_demo__streaming_analytics__streams
