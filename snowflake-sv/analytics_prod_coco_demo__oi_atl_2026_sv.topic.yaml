@@ -1,0 +1,2030 @@
+# Topic is generated from the semantic view ANALYTICS_PROD.COCO_DEMO.OI_ATL_2026_SV
+semantic_view: ANALYTICS_PROD.COCO_DEMO.OI_ATL_2026_SV
+label: Ecommerce Deep Model
+description: |
+  Comprehensive e-commerce analytics model supporting the full order lifecycle — acquisition, purchase, fulfillment, delivery, and returns. Primary grain is order line items (order_items) with supporting dimensions for products, users, inventory, distribution centers, and derived fact tables for customer LTV and order-level aggregates. Designed for deep cohort analysis, customer segmentation, basket analytics, margin optimization, and fulfillment performance reporting.
+
+views:
+  analytics_prod_coco_demo__oi_atl_2026_sv__distribution_centers:
+    label: Distribution Centers
+    display_order: 4
+    description: |
+      Physical warehouse and fulfillment locations. Each row is a distribution center with geographic coordinates. Used for logistics optimization and regional fulfillment analysis.
+
+    catalog: ANALYTICS_PROD
+    schema: COCO_DEMO
+    table_name: DISTRIBUTION_CENTERS
+
+    dimensions:
+      latitude:
+        sql: '"LATITUDE"'
+        label: DC Latitude
+        description: Geographic latitude of the distribution center.
+        hidden: true
+
+      longitude:
+        sql: '"LONGITUDE"'
+        label: DC Longitude
+        description: Geographic longitude of the distribution center.
+        hidden: true
+
+      id:
+        sql: '"ID"'
+        label: DC ID
+        format: ID
+        description: Unique identifier for the distribution center.
+        primary_key: true
+
+      name:
+        sql: '"NAME"'
+        label: Distribution Center
+        description: Name of the distribution center facility.
+        synonyms: [ warehouse name, fulfillment center, facility name, DC name, warehouse ]
+        ai_context: Physical warehouse name. Products are assigned to distribution
+          centers for fulfillment.
+
+    measures:
+      dc_count:
+        label: Distribution Center Count
+        format: number_0
+        description: Number of distribution centers.
+        aggregate_type: count
+        synonyms: [ warehouse count, facility count, number of DCs ]
+
+  analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items:
+    label: Inventory Items
+    display_order: 2
+    description: |
+      Individual stock-keeping units (SKUs) from warehouse receipt through sale. Tracks product details, cost, and lifecycle timestamps. One row per physical inventory unit.
+
+    catalog: ANALYTICS_PROD
+    schema: COCO_DEMO
+    table_name: INVENTORY_ITEMS
+
+    dimensions:
+      cost:
+        sql: '"COST"'
+        label: Item Cost (COGS)
+        format: currency_2
+        description: Cost of goods sold for this inventory item.
+        group_label: Financials
+        synonyms: [ COGS, unit cost, wholesale cost, landed cost, cost price ]
+        ai_context: What the company paid to acquire this item. Used to calculate margin
+          (sale_price - cost).
+
+      product_retail_price:
+        sql: '"PRODUCT_RETAIL_PRICE"'
+        label: Retail Price (MSRP)
+        format: currency_2
+        description: Manufacturer suggested retail price.
+        group_label: Financials
+        synonyms: [ MSRP, list price, sticker price, RRP, recommended price ]
+        ai_context: Original retail price before any discounts. Compare with sale_price
+          to calculate discount depth.
+
+      created_at:
+        sql: '"CREATED_AT"'
+        label: Inventory Received Date
+        description: Date the inventory item was received into the warehouse.
+        group_label: Lifecycle
+        timeframes: [ raw, date, week, month, quarter, year ]
+        synonyms: [ receipt date, stocked date, warehouse arrival ]
+        ai_context: When this item entered inventory. Use with sold_at for
+          days-in-inventory calculation.
+
+      id:
+        sql: '"ID"'
+        label: Inventory Item ID
+        format: ID
+        description: Unique identifier for this inventory unit.
+        hidden: true
+        primary_key: true
+        synonyms: [ stock item id, unit id ]
+        ai_context: Primary key for inventory items. One product can have many inventory
+          items.
+
+      product_brand:
+        sql: '"PRODUCT_BRAND"'
+        label: Brand
+        description: Product brand/manufacturer name.
+        group_label: Product Info
+        synonyms: [ brand name, manufacturer, vendor, label, make ]
+        ai_context: The brand that makes this product. Use for brand performance and
+          brand mix analysis.
+
+      product_category:
+        sql: '"PRODUCT_CATEGORY"'
+        label: Product Category
+        description: High-level product category (e.g., Jeans, Accessories, Outerwear).
+        group_label: Product Info
+        synonyms:
+          [
+            category,
+            product type,
+            item category,
+            product group,
+            merchandise category
+          ]
+        ai_context: Primary product grouping. Use for category-level revenue and margin
+          analysis.
+
+      product_department:
+        sql: '"PRODUCT_DEPARTMENT"'
+        label: Department
+        description: Merchandising department (e.g., Men, Women).
+        group_label: Product Info
+        synonyms: [ dept, merchandise division, gender department ]
+        ai_context: Top-level merchandising split, typically by gender (Men, Women). Use
+          for department-level P&L.
+
+      product_distribution_center_id:
+        sql: '"PRODUCT_DISTRIBUTION_CENTER_ID"'
+        label: Distribution Center ID
+        format: ID
+        description: Which distribution center stocks this item.
+        hidden: true
+
+      product_id:
+        sql: '"PRODUCT_ID"'
+        label: Product ID
+        format: ID
+        description: Links to the product catalog.
+        hidden: true
+
+      product_name:
+        sql: '"PRODUCT_NAME"'
+        label: Product Name
+        description: Full product name/title.
+        group_label: Product Info
+        synonyms: [ item name, product title, SKU name ]
+
+      product_sku:
+        sql: '"PRODUCT_SKU"'
+        label: SKU
+        description: Stock keeping unit identifier.
+        group_label: Product Info
+        hidden: true
+        synonyms: [ SKU code, item number, part number, barcode ]
+
+      sold_at:
+        sql: '"SOLD_AT"'
+        label: Sold Date
+        description: Date the inventory item was sold, null if still in stock.
+        group_label: Lifecycle
+        timeframes: [ raw, date, week, month ]
+        synonyms: [ sale date, purchased date ]
+
+      cost_tier:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.cost}
+        bin_boundaries: [ 0, 10, 25, 50, 100 ]
+        label: Cost Tier
+        description: Groups items by COGS cost.
+        group_label: Financials
+        synonyms: [ cost range, cost bucket ]
+        ai_context: |
+          Bins: Under $10 (low-cost), $10-$25, $25-$50, $50-$100, $100+ (premium sourced).
+
+      is_sold:
+        sql: CASE WHEN ${sold_at} IS NOT NULL THEN TRUE ELSE FALSE END
+        label: Is Sold
+        description: Whether this inventory item has been sold.
+        synonyms: [ was sold, sold flag ]
+        ai_context: TRUE if item has a sold_at date. FALSE means still in stock or
+          written off.
+
+      days_in_inventory:
+        sql: DATEDIFF('day', ${created_at}, COALESCE(${sold_at}, CURRENT_TIMESTAMP()))
+        label: Days in Inventory
+        format: number_0
+        description: Number of days this item sat in inventory before sale (or until
+          today if unsold).
+        synonyms: [ inventory age, stock age, days on shelf, sell-through time ]
+        ai_context: How long items sit before selling. High values indicate slow-moving
+          inventory or dead stock.
+
+      inventory_age_bucket:
+        sql: DATEDIFF('day',
+          ${analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.created_at},
+          COALESCE(${analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.sold_at},
+          CURRENT_TIMESTAMP))
+        bin_boundaries: [ 0, 30, 60, 90, 180 ]
+        label: Inventory Age Bucket
+        description: Categorizes items by how long they were/are in inventory.
+        synonyms: [ stock age tier, aging bucket ]
+        ai_context: |
+          Bins: 0-30 days (fresh), 30-60 (normal), 60-90 (aging), 90-180 (slow-moving), 180+ (dead stock). Use for inventory health assessment.
+
+      discount_depth:
+        sql: 1.0 - (${cost} / NULLIF(${product_retail_price}, 0))
+        label: Markup %
+        format: percent_1
+        description: Markup percentage from cost to retail price.
+        synonyms: [ markup rate, margin on cost, cost-to-retail ratio ]
+        ai_context: How much the retail price exceeds cost. Higher = more room for
+          discounting while maintaining margin.
+
+    measures:
+      total_inventory_cost:
+        sql: ${cost}
+        label: Total Inventory Cost
+        format: currency_2
+        description: Total acquisition cost of inventory items.
+        drill_fields:
+          [
+            product_name,
+            product_brand,
+            product_category,
+            cost,
+            created_at,
+            sold_at
+          ]
+        aggregate_type: sum
+        synonyms: [ total COGS, total stock cost, inventory investment ]
+        ai_context: Sum of cost across inventory items. Represents total capital
+          invested in stock.
+
+      avg_item_cost:
+        sql: ${cost}
+        label: Avg Item Cost
+        format: currency_2
+        description: Average cost per inventory unit.
+        aggregate_type: average
+        synonyms: [ mean cost, average unit cost ]
+
+      inventory_count:
+        label: Inventory Units
+        format: number_0
+        description: Total number of inventory items.
+        aggregate_type: count
+        synonyms: [ total inventory, stock count, unit count ]
+
+      unsold_inventory_count:
+        label: Unsold Inventory
+        format: number_0
+        description: Number of inventory items not yet sold.
+        aggregate_type: count
+        filters:
+          sold_at:
+            is: null
+        synonyms: [ available stock, remaining inventory, on-hand units ]
+
+      total_cost:
+        sql: ${cost}
+        label: Total COGS
+        format: currency_2
+        description: Sum of cost of goods.
+        aggregate_type: sum
+        synonyms: [ total cost, cost of goods, total COGS ]
+        ai_context: Total cost of goods sold. Subtract from revenue for gross margin.
+
+      avg_cost:
+        sql: ${cost}
+        label: Avg Item Cost
+        format: currency_2
+        description: Average cost per inventory item.
+        aggregate_type: average
+        synonyms: [ mean cost, average COGS ]
+
+      avg_retail_price:
+        sql: ${product_retail_price}
+        label: Avg Retail Price
+        format: currency_2
+        description: Average MSRP across items.
+        aggregate_type: average
+        synonyms: [ average MSRP, mean list price ]
+
+      sold_item_count:
+        label: Sold Units
+        format: number_0
+        description: Number of inventory items that have been sold.
+        aggregate_type: count
+        filters:
+          is_sold:
+            is: true
+        synonyms: [ units sold, sold count ]
+
+      unsold_item_count:
+        label: Unsold Units
+        format: number_0
+        description: Number of inventory items still in stock (never sold).
+        aggregate_type: count
+        filters:
+          is_sold:
+            is: false
+        synonyms: [ in stock count, remaining inventory, available units ]
+        ai_context: Items that have not yet sold. High counts relative to sold may
+          indicate overstock.
+
+      sell_through_rate:
+        sql: CASE WHEN ${is_sold} THEN 1 ELSE 0 END
+        label: Sell-Through Rate
+        format: percent_1
+        description: Percentage of received inventory that has been sold.
+        aggregate_type: average
+        synonyms: [ sell through pct, sold rate, inventory turnover rate ]
+        ai_context: |
+          Fraction of inventory units sold. 100% = all received items sold. Industry targets vary; fashion aims for 60-80%.
+
+      avg_days_in_inventory:
+        sql: DATEDIFF('day', ${created_at}, COALESCE(${sold_at}, CURRENT_TIMESTAMP()))
+        label: Avg Days in Inventory
+        format: number_0
+        description: Average number of days items spend in inventory before selling.
+        aggregate_type: average
+        synonyms: [ avg stock age, mean sell-through time, avg days on shelf ]
+        ai_context: Inventory velocity metric. Lower = faster turnover = healthier
+          inventory management.
+
+  analytics_prod_coco_demo__oi_atl_2026_sv__order_items:
+    label: Order Items
+    display_order: 0
+    description: |
+      Core transactional fact table. One row per line item in an order. Contains sale price, margin, fulfillment timestamps, and status flags. The primary grain for all revenue and order volume metrics.
+
+    catalog: ANALYTICS_PROD
+    schema: COCO_DEMO
+    table_name: ORDER_ITEMS
+
+    dimensions:
+      margin:
+        sql: '"MARGIN"'
+        label: Item Margin
+        format: currency_2
+        description: Gross profit margin for this line item (sale_price minus cost).
+        synonyms: [ item profit, unit margin, gross profit, markup amount ]
+        ai_context: Per-item profit. Use total_margin measure for aggregated margin.
+
+      sale_price:
+        sql: '"SALE_PRICE"'
+        label: Sale Price
+        format: currency_2
+        description: Revenue for this line item after any discounts.
+        synonyms: [ item price, selling price, unit revenue, price paid ]
+        ai_context: The actual amount the customer paid for this item. Use total_revenue
+          measure for aggregated revenue.
+
+      created_at:
+        sql: '"CREATED_AT"'
+        label: Order Date
+        description: Timestamp when the order was placed.
+        timeframes: [ raw, date, week, month, quarter, year, day_of_week_name, hour_of_day ]
+        synonyms: [ order date, purchase date, transaction date, ordered at ]
+        ai_context: Primary date field for trending and cohort analysis.
+
+      delivered_at:
+        sql: '"DELIVERED_AT"'
+        label: Delivery Date
+        description: Timestamp when the item was delivered to the customer.
+        timeframes: [ raw, date, week, month ]
+        synonyms: [ receipt date, arrival date ]
+
+      id:
+        sql: '"ID"'
+        label: Line Item ID
+        format: ID
+        description: Unique identifier for each order line item.
+        primary_key: true
+        synonyms: [ order item id, line item id, item id ]
+        ai_context: Primary key for order line items. Use order_id to group items into
+          orders.
+
+      inventory_item_id:
+        sql: '"INVENTORY_ITEM_ID"'
+        label: Inventory Item ID
+        format: ID
+        description: Links to the specific inventory unit sold.
+        hidden: true
+
+      is_delivered:
+        sql: '"IS_DELIVERED"'
+        label: Is Delivered
+        description: Whether this item has been delivered to the customer.
+        synonyms: [ was delivered, received, arrived ]
+
+      is_returned:
+        sql: '"IS_RETURNED"'
+        label: Is Returned
+        description: Whether this item was returned by the customer.
+        synonyms: [ was returned, refunded, sent back ]
+        ai_context: Boolean flag for return analysis. Filter to TRUE for return-specific
+          metrics.
+
+      is_shipped:
+        sql: '"IS_SHIPPED"'
+        label: Is Shipped
+        description: Whether this item has been shipped from the warehouse.
+        synonyms: [ was shipped, dispatched, sent ]
+
+      months_since_signup:
+        sql: '"MONTHS_SINCE_SIGNUP"'
+        label: Months Since Signup
+        format: number_0
+        description: Number of months between customer signup and this order.
+        synonyms: [ customer tenure at purchase, months as customer ]
+        ai_context: Indicates how long the customer had been a member when they made
+          this purchase. Use for retention/loyalty analysis.
+
+      order_id:
+        sql: '"ORDER_ID"'
+        label: Order ID
+        format: ID
+        description: Identifier for the parent order. Multiple line items share an order_id.
+        synonyms: [ transaction id, purchase id, order number ]
+        ai_context: Groups line items into a single transaction. Use order_facts for
+          order-level aggregates.
+
+      returned_at:
+        sql: '"RETURNED_AT"'
+        label: Return Date
+        description: Timestamp when the item was returned, null if not returned.
+        timeframes: [ raw, date, week, month ]
+        synonyms: [ refund date, return timestamp ]
+
+      shipped_at:
+        sql: '"SHIPPED_AT"'
+        label: Ship Date
+        description: Timestamp when the item was shipped from the warehouse.
+        timeframes: [ raw, date, week, month ]
+        synonyms: [ shipment date, dispatch date, sent date ]
+
+      status:
+        sql: '"STATUS"'
+        label: Order Status
+        description: Current fulfillment status of the line item.
+        synonyms: [ fulfillment status, order state, item status, delivery status ]
+        ai_context: |
+          Possible values: Cancelled, Complete, Processing, Returned, Shipped. Use to filter order funnel stages. Complete = successfully delivered. Returned = customer sent it back.
+
+      time_to_ship:
+        sql: '"TIME_TO_SHIP"'
+        label: Time to Ship (days)
+        format: number_1
+        description: Number of days between order placement and shipment.
+        synonyms: [ shipping delay, processing time, days to ship, fulfillment time ]
+        ai_context: Operational metric measuring warehouse efficiency. Lower is better.
+
+      user_id:
+        sql: '"USER_ID"'
+        label: Customer ID
+        format: ID
+        description: Identifier for the customer who placed the order.
+        hidden: true
+        synonyms: [ customer id, buyer id, shopper id, account id ]
+
+      order_status_group:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_items.status}
+        groups:
+          - filter:
+              is: Complete
+            name: Fulfilled
+          - filter:
+              is: [ Shipped, Processing ]
+            name: In Progress
+          - filter:
+              is: Cancelled
+            name: Cancelled
+          - filter:
+              is: Returned
+            name: Returned
+        else: Other
+        label: Order Status Group
+        description: High-level grouping of order statuses for simplified reporting.
+        synonyms: [ status category, fulfillment group, status bucket ]
+        ai_context: |
+          Groups statuses: Fulfilled (Complete), In Progress (Shipped/Processing), Cancelled, Returned. Use for high-level funnel analysis.
+
+      sale_price_tier:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_items.sale_price}
+        bin_boundaries: [ 0, 15, 30, 60, 100, 200 ]
+        label: Price Point
+        description: Categorizes items by sale price into pricing tiers.
+        synonyms: [ price range, price bucket, price band, price segment ]
+        ai_context: |
+          Bins: Under $15 (value), $15-$30 (budget), $30-$60 (mid-range), $60-$100 (premium), $100-$200 (luxury), $200+ (ultra-luxury). Use for price sensitivity analysis.
+
+      shipping_speed:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_items.time_to_ship}
+        groups:
+          - filter:
+              less_than: 2
+            name: Same/Next Day
+          - filter:
+              less_than: 4
+            name: Fast (2-3 days)
+          - filter:
+              less_than: 7
+            name: Standard (4-6 days)
+        else: Slow (7+ days)
+        label: Shipping Speed
+        description: Categorizes orders by fulfillment speed.
+        synonyms: [ delivery speed, fulfillment tier, shipping performance ]
+        ai_context: |
+          Groups shipping time: Same/Next Day (<2), Fast (2-3), Standard (4-6), Slow (7+). Use to benchmark logistics and identify SLA breaches.
+
+      months_since_signup_tier:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_items.months_since_signup}
+        bin_boundaries: [ 0, 3, 6, 12, 24, 48 ]
+        label: Customer Tenure at Purchase
+        description: Customer account age at time of purchase, bucketed.
+        synonyms: [ tenure bucket, account age tier, loyalty tier ]
+        ai_context: |
+          Bins: 0-3 months (new), 3-6 months, 6-12 months, 1-2 years, 2-4 years, 4+ years. Use for cohort analysis and retention insights.
+
+      margin_tier:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_items.margin}
+        bin_boundaries: [ 0, 5, 15, 30, 50 ]
+        label: Margin Tier
+        description: Categorizes items by gross margin amount.
+        synonyms: [ profit tier, margin bucket, margin range ]
+        ai_context: |
+          Bins: Negative/Zero (loss), $0-$5 (thin), $5-$15 (moderate), $15-$30 (healthy), $30-$50 (strong), $50+ (high-margin). Use to identify profit drivers.
+
+      customer_tenure_at_purchase:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_items.months_since_signup}
+        groups:
+          - filter:
+              less_than: 2
+            name: New (0-1 months)
+          - filter:
+              less_than: 7
+            name: Developing (2-6 months)
+          - filter:
+              less_than: 13
+            name: Established (7-12 months)
+        else: Loyal (13+ months)
+        label: Customer Tenure at Purchase
+        description: Customer loyalty stage at the time of this purchase.
+        synonyms: [ loyalty stage, tenure bucket, customer maturity ]
+        ai_context: |
+          Segments customers by how long they had been a member at purchase time. New (0-1mo), Developing (2-6mo), Established (7-12mo), Loyal (13+mo). Use for cohort retention analysis.
+
+      order_day_of_week:
+        sql: DAYNAME(${created_at})
+        label: Day of Week
+        description: Day of the week when the order was placed.
+        synonyms: [ weekday, order weekday, purchase day ]
+        ai_context: Use for day-of-week seasonality analysis. Values are Mon, Tue, Wed,
+          Thu, Fri, Sat, Sun.
+
+      is_weekend_order:
+        sql: CASE WHEN DAYOFWEEK(${created_at}) IN (0, 6) THEN TRUE ELSE FALSE END
+        label: Weekend Order
+        description: Whether the order was placed on a Saturday or Sunday.
+        synonyms: [ weekend purchase, weekend transaction ]
+
+    measures:
+      avg_order_value:
+        sql: ${sale_price}
+        label: Avg Order Value (Line Item)
+        format: currency_2
+        description: Average sale price at line-item grain. For true AOV at order level
+          use order_facts.avg_order_revenue.
+        aggregate_type: average
+        synonyms: [ AOV, average basket value ]
+        ai_context: |
+          CAUTION: This is line-item level average, NOT true AOV. For accurate average order value use order_facts.avg_order_revenue which calculates at order grain.
+
+      avg_time_to_ship:
+        sql: ${time_to_ship}
+        label: Avg Time to Ship
+        format: number_1
+        description: Average number of days from order placement to shipment.
+        aggregate_type: average
+        synonyms: [ avg fulfillment time, mean shipping delay, avg processing time ]
+        ai_context: Operational KPI. Target is typically <3 days. Higher values indicate
+          warehouse bottlenecks.
+
+      order_count:
+        sql: ${order_id}
+        label: Order Count
+        format: number_0
+        description: Number of distinct orders (not line items).
+        drill_fields: [ order_id, created_at, user_id, status ]
+        aggregate_type: count_distinct
+        synonyms: [ number of orders, transaction count, purchase count, order volume ]
+        ai_context: |
+          Count of unique orders. One order may have multiple line items. Use item_count for total line items.
+
+      return_rate:
+        sql: CASE WHEN ${is_returned} THEN 1 ELSE 0 END
+        label: Return Rate
+        format: percent_2
+        description: Percentage of items that were returned.
+        drill_fields:
+          [
+            order_id,
+            analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_name,
+            analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_brand,
+            sale_price,
+            returned_at
+          ]
+        aggregate_type: average
+        synonyms: [ refund rate, return percentage, RMA rate ]
+        ai_context: |
+          Fraction of line items returned. Industry average is 15-30% for fashion, 5-10% for electronics. Higher rates signal quality or fit issues.
+
+      total_margin:
+        sql: ${margin}
+        label: Total Margin
+        format: currency_2
+        description: Sum of gross margins across all items. Revenue minus cost of goods.
+        drill_fields:
+          [
+            order_id,
+            sale_price,
+            margin,
+            analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_name,
+            analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_brand
+          ]
+        aggregate_type: sum
+        synonyms: [ gross profit, total profit, COGS margin, gross margin dollars ]
+        ai_context: |
+          Total gross profit. Margin = sale_price - cost. Does not account for operating expenses, only COGS.
+
+      total_revenue:
+        sql: ${sale_price}
+        label: Total Revenue
+        format: currency_2
+        description: Sum of all item sale prices. The primary top-line revenue metric.
+        drill_fields:
+          [
+            order_id,
+            status,
+            sale_price,
+            created_at,
+            analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_name,
+            analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_brand,
+            analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_category
+          ]
+        aggregate_type: sum
+        synonyms:
+          [
+            gross revenue,
+            total sales,
+            GMV,
+            gross merchandise value,
+            income,
+            top-line revenue
+          ]
+        ai_context: |
+          The primary revenue metric. Sum of sale_price across all order items. Includes all statuses unless filtered. For completed-only revenue use completed_revenue. For net revenue subtract returned_revenue.
+
+      gross_margin_pct:
+        sql: ${total_margin} / NULLIF(${total_revenue}, 0)
+        label: Gross Margin %
+        format: percent_2
+        description: Total margin as a percentage of total revenue.
+        synonyms: [ margin rate, profit margin percentage, margin pct, GPM ]
+        ai_context: |
+          Derived ratio: total_margin / total_revenue. Healthy ecommerce margins are 40-60%. Use to compare profitability across categories or brands.
+
+      completed_revenue:
+        sql: ${sale_price}
+        label: Completed Revenue
+        format: currency_2
+        description: Revenue from items with Complete status only.
+        drill_fields:
+          [
+            order_id,
+            sale_price,
+            created_at,
+            analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_name
+          ]
+        aggregate_type: sum
+        filters:
+          status:
+            is: Complete
+        synonyms: [ fulfilled revenue, delivered revenue, net completed sales ]
+        ai_context: Revenue only from successfully completed orders. Excludes cancelled,
+          returned, and in-progress items.
+
+      returned_revenue:
+        sql: ${sale_price}
+        label: Returned Revenue
+        format: currency_2
+        description: Revenue lost to customer returns.
+        aggregate_type: sum
+        filters:
+          status:
+            is: Returned
+        synonyms: [ refund amount, return value, lost revenue ]
+        ai_context: Total value of returned items. Subtract from total_revenue for net
+          revenue.
+
+      repeat_buyer_count:
+        sql: ${user_id}
+        label: Repeat Buyer Count
+        format: number_0
+        description: Number of unique customers who placed more than one order.
+        aggregate_type: count_distinct
+        synonyms: [ returning customers, loyal customers, repeat purchasers ]
+        ai_context: |
+          Customers with 2+ distinct orders. Compare to total user_count to get repeat purchase rate.
+
+      item_count:
+        label: Item Count
+        format: number_0
+        description: Total number of line items sold.
+        aggregate_type: count
+        synonyms: [ units sold, line items, quantity sold, items sold ]
+        ai_context: Total line items across all orders. Different from order_count which
+          counts unique orders.
+
+      items_per_order:
+        sql: ${item_count} / NULLIF(${order_count}, 0)
+        label: Items per Order
+        format: number_2
+        description: Average number of line items per order.
+        synonyms: [ basket size, order density, units per transaction ]
+        ai_context: Higher values indicate cross-sell/upsell success. Derived from
+          item_count / order_count.
+
+      median_sale_price:
+        sql: ${sale_price}
+        label: Median Sale Price
+        format: currency_2
+        description: Median item price, robust to outliers from high-value items.
+        aggregate_type: median
+        synonyms: [ typical price, middle price ]
+
+      cancelled_order_count:
+        sql: ${order_id}
+        label: Cancelled Orders
+        format: number_0
+        description: Number of distinct orders with cancelled status.
+        aggregate_type: count_distinct
+        filters:
+          status:
+            is: Cancelled
+        synonyms: [ cancellations, cancelled transactions ]
+
+      net_revenue:
+        sql: ${total_revenue} - ${returned_revenue}
+        label: Net Revenue
+        format: currency_2
+        description: Total revenue minus returned revenue. True top-line after returns.
+        synonyms: [ net sales, adjusted revenue, revenue after returns ]
+        ai_context: |
+          Net revenue = total_revenue - returned_revenue. More accurate top-line than gross revenue for financial reporting.
+
+      returned_item_count:
+        label: Returned Items
+        format: number_0
+        description: Number of line items that were returned.
+        aggregate_type: count
+        filters:
+          is_returned:
+            is: true
+        synonyms: [ return count, refund count, items returned ]
+
+      avg_sale_price:
+        sql: ${sale_price}
+        label: Avg Item Price
+        format: currency_2
+        description: Average sale price per line item.
+        aggregate_type: average
+        synonyms: [ average price, mean price, avg unit price, ASP ]
+        ai_context: Average selling price per item. Use for pricing strategy analysis.
+
+      avg_margin:
+        sql: ${margin}
+        label: Avg Item Margin
+        format: currency_2
+        description: Average gross margin per line item.
+        aggregate_type: average
+        synonyms: [ average profit per item, mean margin ]
+
+      cancelled_count:
+        label: Cancelled Items
+        format: number_0
+        description: Number of line items that were cancelled.
+        aggregate_type: count
+        filters:
+          status:
+            is: Cancelled
+        synonyms: [ cancellation count, abandoned items ]
+
+      cancellation_rate:
+        sql: CASE WHEN ${status} = 'Cancelled' THEN 1 ELSE 0 END
+        label: Cancellation Rate
+        format: percent_2
+        description: Percentage of items that were cancelled before fulfillment.
+        aggregate_type: average
+        synonyms: [ cancel rate, cancellation percentage ]
+        ai_context: Fraction of items cancelled before shipping. High rates may indicate
+          inventory issues or buyer remorse.
+
+      repeat_customer_revenue:
+        sql: ${sale_price}
+        label: Repeat Customer Revenue
+        format: currency_2
+        description: Revenue from customers who have ordered more than once.
+        aggregate_type: sum
+        filters:
+          months_since_signup:
+            greater_than: 0
+        synonyms: [ returning customer revenue, loyal customer revenue ]
+        ai_context: Revenue from customers beyond their first month. Proxy for repeat
+          purchase revenue.
+
+      first_month_revenue:
+        sql: ${sale_price}
+        label: First-Month Revenue
+        format: currency_2
+        description: Revenue from customers in their first month after signup.
+        aggregate_type: sum
+        filters:
+          months_since_signup:
+            less_than: 2
+        synonyms: [ new customer revenue, acquisition revenue ]
+        ai_context: Revenue from customers within their first month. Indicates new
+          customer monetization effectiveness.
+
+      first_order_date:
+        sql: ${created_at}
+        aggregate_type: min
+
+      last_order_date:
+        sql: ${created_at}
+        aggregate_type: max
+
+  analytics_prod_coco_demo__oi_atl_2026_sv__products:
+    label: Products
+    display_order: 3
+    description: |
+      Product catalog dimension. One row per unique product (many inventory items may map to one product). Contains pricing, categorization, and brand information.
+
+    catalog: ANALYTICS_PROD
+    schema: COCO_DEMO
+    table_name: PRODUCTS
+
+    dimensions:
+      cost:
+        sql: '"COST"'
+        label: Product Cost
+        format: currency_2
+        description: Standard cost for this product.
+        group_label: Pricing
+        hidden: true
+        synonyms: [ manufacturing cost, base cost ]
+
+      retail_price:
+        sql: '"RETAIL_PRICE"'
+        label: Retail Price
+        format: currency_2
+        description: Catalog retail price (MSRP).
+        group_label: Pricing
+        synonyms: [ list price, MSRP, RRP, sticker price ]
+        ai_context: The catalog price. Actual sale price may differ due to promotions.
+
+      brand:
+        sql: '"BRAND"'
+        label: Brand
+        description: Brand name from the product catalog.
+        group_label: Product Details
+        synonyms: [ brand name, manufacturer, vendor, label ]
+        ai_context: Brand of the product. Use for brand performance comparison.
+
+      category:
+        sql: '"CATEGORY"'
+        label: Category
+        description: Product category in the catalog.
+        group_label: Product Details
+        synonyms: [ product category, product type, item type, merchandise category ]
+        ai_context: Product grouping at the catalog level. Same as
+          inventory_items.product_category but from the product master.
+
+      department:
+        sql: '"DEPARTMENT"'
+        label: Department
+        description: Product department (e.g., Men, Women).
+        group_label: Product Details
+        synonyms: [ division, gender segment, merchandise dept ]
+        ai_context: Broad product division. Typically Men or Women.
+
+      distribution_center_id:
+        sql: '"DISTRIBUTION_CENTER_ID"'
+        label: Distribution Center ID
+        format: ID
+        description: Default distribution center for this product.
+        hidden: true
+
+      id:
+        sql: '"ID"'
+        label: Product ID
+        format: ID
+        description: Unique product identifier in the catalog.
+        primary_key: true
+        synonyms: [ catalog id, product number ]
+        ai_context: Primary key for the products table.
+
+      name:
+        sql: '"NAME"'
+        label: Product Name
+        description: Product display name in the catalog.
+        group_label: Product Details
+        synonyms: [ item name, product title ]
+
+      sku:
+        sql: '"SKU"'
+        label: SKU
+        description: Stock keeping unit code.
+        group_label: Product Details
+        hidden: true
+        synonyms: [ item code, part number ]
+
+      price_tier:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__products.retail_price}
+        bin_boundaries: [ 0, 20, 50, 100, 200, 500 ]
+        label: Price Tier
+        description: Product price range bucket.
+        group_label: Pricing
+        synonyms: [ price segment, price bracket, price range ]
+        ai_context: |
+          Bins: Under $20 (budget), $20-$50 (value), $50-$100 (mid-range), $100-$200 (premium), $200-$500 (luxury), $500+ (ultra-premium).
+
+      price_point:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__products.retail_price}
+        bin_boundaries: [ 0, 20, 50, 100, 200 ]
+        label: Price Point
+        description: Product pricing tier based on retail price.
+        synonyms: [ price tier, price segment, price band, price level ]
+        ai_context: |
+          Bins: Under $20 (budget), $20-$50 (value), $50-$100 (mid-range), $100-$200 (premium), $200+ (luxury). Use for assortment and pricing strategy.
+
+    measures:
+      product_count:
+        sql: ${id}
+        label: Product Count
+        format: number_0
+        description: Number of unique products in the catalog.
+        aggregate_type: count
+        synonyms: [ SKU count, catalog size, assortment size ]
+        ai_context: Distinct products (not inventory units). One product can have many
+          inventory items.
+
+      avg_retail_price:
+        sql: ${retail_price}
+        label: Avg Retail Price
+        format: currency_2
+        description: Average listed retail price across products.
+        aggregate_type: average
+        synonyms: [ average price, mean price, avg MSRP ]
+
+      avg_markup_pct:
+        sql: (${retail_price} - ${cost}) / NULLIF(${cost}, 0)
+        label: Avg Markup %
+        format: percent_1
+        description: Average percentage markup over cost ((retail - cost) / cost).
+        aggregate_type: average
+        synonyms: [ markup ratio, margin on cost, cost markup ]
+        ai_context: How much above cost products are priced on average.
+
+      avg_product_retail_price:
+        sql: ${retail_price}
+        label: Avg Product Price
+        format: currency_2
+        description: Average retail price across products in the catalog.
+        aggregate_type: average
+        synonyms: [ average price, mean retail price ]
+
+      avg_product_cost:
+        sql: ${cost}
+        label: Avg Product Cost
+        format: currency_2
+        description: Average product cost from the catalog.
+        aggregate_type: average
+
+  analytics_prod_coco_demo__oi_atl_2026_sv__users:
+    label: Customers
+    display_order: 1
+    description: |
+      Customer dimension table. One row per registered customer with demographics, geography, and acquisition channel. Use for segmentation, cohort analysis, and customer-level reporting.
+
+    catalog: ANALYTICS_PROD
+    schema: COCO_DEMO
+    table_name: USERS
+
+    dimensions:
+      latitude:
+        sql: '"LATITUDE"'
+        label: Customer Latitude
+        description: Geographic latitude of customer location.
+        group_label: Geography
+        hidden: true
+
+      longitude:
+        sql: '"LONGITUDE"'
+        label: Customer Longitude
+        description: Geographic longitude of customer location.
+        group_label: Geography
+        hidden: true
+
+      age:
+        sql: '"AGE"'
+        label: Age
+        format: number_0
+        description: Customer age in years.
+        group_label: Demographics
+        synonyms: [ customer age, years old ]
+
+      city:
+        sql: '"CITY"'
+        label: City
+        description: Customer city of residence.
+        group_label: Geography
+        synonyms: [ town, metro, municipality ]
+
+      country:
+        sql: '"COUNTRY"'
+        label: Country
+        description: Customer country of residence.
+        group_label: Geography
+        synonyms: [ nation, market, geography ]
+
+      created_at:
+        sql: '"CREATED_AT"'
+        label: Signup Date
+        description: Date the customer registered their account.
+        group_label: Acquisition
+        timeframes: [ raw, date, week, month, quarter, year ]
+        synonyms: [ registration date, account created, join date, signup date ]
+        ai_context: When the customer first registered. Use for acquisition cohort
+          analysis.
+
+      email:
+        sql: '"EMAIL"'
+        label: Email Address
+        description: Customer email address.
+        group_label: Customer Profile
+        synonyms: [ email, contact email ]
+
+      first_name:
+        sql: '"FIRST_NAME"'
+        label: First Name
+        description: Customer first name.
+        group_label: Customer Profile
+        synonyms: [ given name ]
+
+      gender:
+        sql: '"GENDER"'
+        label: Gender
+        description: Customer gender identity.
+        group_label: Demographics
+        synonyms: [ sex, demographic gender ]
+        ai_context: "Possible values: M, F. Use for demographic segmentation."
+
+      id:
+        sql: '"ID"'
+        label: Customer ID
+        format: ID
+        description: Unique identifier for the customer.
+        primary_key: true
+        synonyms: [ user id, buyer id, account id, shopper id ]
+        ai_context: Primary key for customers. Join to order_items via user_id.
+
+      last_name:
+        sql: '"LAST_NAME"'
+        label: Last Name
+        description: Customer last name.
+        group_label: Customer Profile
+        synonyms: [ surname, family name ]
+
+      state:
+        sql: '"STATE"'
+        label: State/Region
+        description: Customer state or region.
+        group_label: Geography
+        synonyms: [ province, region, territory ]
+
+      traffic_source:
+        sql: '"TRAFFIC_SOURCE"'
+        label: Acquisition Channel
+        description: Marketing channel that acquired this customer.
+        group_label: Acquisition
+        synonyms:
+          [
+            traffic source,
+            marketing channel,
+            acquisition source,
+            referral source,
+            utm source
+          ]
+        ai_context: |
+          How the customer was acquired (e.g., Organic, Search, Email, Facebook, Display). Use for channel attribution and CAC analysis.
+
+      zip:
+        sql: '"ZIP"'
+        label: Zip Code
+        description: Customer postal/zip code.
+        group_label: Geography
+        synonyms: [ postal code, postcode, zip ]
+
+      full_name:
+        sql: ${first_name} || ' ' || ${last_name}
+        label: Full Name
+        description: Customer full name (first + last).
+        group_label: Customer Profile
+        synonyms: [ customer name, name, buyer name ]
+
+      age_group:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__users.age}
+        bin_boundaries: [ 18, 25, 35, 45, 55, 65 ]
+        label: Age Group
+        description: Customer age segmented into standard demographic cohorts.
+        group_label: Demographics
+        synonyms: [ age bracket, age band, age segment, demographic cohort, generation ]
+        ai_context: |
+          Standard age segments for demographic analysis. Aligns with common marketing demographics: Under 18, 18-24 (Gen Z), 25-34 (Millennials), 35-44 (Older Millennials/Gen X), 45-54 (Gen X), 55-64 (Boomers), 65+.
+
+      acquisition_channel_group:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__users.traffic_source}
+        groups:
+          - filter:
+              is: Search
+            name: Paid Search
+          - filter:
+              is: Organic
+            name: Organic
+          - filter:
+              is: [ Facebook, Display ]
+            name: Paid Social & Display
+          - filter:
+              is: Email
+            name: Email & CRM
+        else: Other
+        label: Channel Group
+        description: High-level grouping of acquisition channels.
+        group_label: Acquisition
+        synonyms: [ channel type, marketing group, source group ]
+        ai_context: |
+          Groups acquisition channels into standard marketing categories: Paid Search, Organic, Paid Social & Display, Email & CRM.
+
+      is_female:
+        sql: CASE WHEN ${gender} = 'F' THEN TRUE ELSE FALSE END
+        label: Is Female
+        description: Whether the customer identifies as female.
+        hidden: true
+
+      customer_region:
+        sql: |
+          CASE
+            WHEN ${country} = 'United States' THEN ${state}
+            ELSE ${country}
+          END
+        label: Customer Region
+        description: Primary geographic grouping — US state or international country.
+        synonyms: [ region, geography, market ]
+        ai_context: For US customers shows state-level detail; for international shows
+          country. Use for regional performance analysis.
+
+    measures:
+      user_count:
+        sql: ${id}
+        label: Customer Count
+        format: number_0
+        description: Total number of unique registered customers.
+        drill_fields: [ full_name, email, city, state, country, traffic_source, created_at ]
+        aggregate_type: count_distinct
+        synonyms: [ user count, total customers, total users, customer base, audience size ]
+        ai_context: Count of distinct customer accounts. Not the same as order count.
+
+      customer_count:
+        sql: ${id}
+        label: Customer Count
+        format: number_0
+        description: Number of distinct customers.
+        aggregate_type: count_distinct
+        synonyms: [ user count, audience size, buyer count, shopper count ]
+        ai_context: Unique customers. One customer may have many orders.
+
+      avg_age:
+        sql: ${age}
+        label: Avg Customer Age
+        format: number_0
+        description: Average age of customers.
+        aggregate_type: average
+        synonyms: [ mean age, average age ]
+
+      female_customer_pct:
+        sql: CASE WHEN ${gender} = 'F' THEN 1 ELSE 0 END
+        label: Female Customer %
+        format: percent_1
+        description: Percentage of customers who are female.
+        aggregate_type: average
+        synonyms: [ female ratio, women percentage ]
+
+  analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts:
+    label: Customer Lifetime Value
+    description: |
+      Aggregated customer-level metrics including lifetime value, order count, average order value, and order date range. One row per customer. Use for LTV analysis, customer segmentation, retention reporting, and cohort-based CLV models.
+
+    query:
+      fields:
+        analytics_prod_coco_demo__oi_atl_2026_sv__order_items.user_id: user_id
+        analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_revenue: lifetime_revenue
+        analytics_prod_coco_demo__oi_atl_2026_sv__order_items.order_count: lifetime_orders
+        analytics_prod_coco_demo__oi_atl_2026_sv__order_items.avg_order_value: avg_order_value
+        analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_margin: lifetime_margin
+        analytics_prod_coco_demo__oi_atl_2026_sv__order_items.first_order_date: first_order_date
+        analytics_prod_coco_demo__oi_atl_2026_sv__order_items.last_order_date: last_order_date
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+
+    dimensions:
+      user_id:
+        label: Customer ID
+        format: ID
+        description: Unique customer identifier. One row per customer.
+        hidden: true
+        primary_key: true
+        synonyms: [ user id, buyer id, customer key ]
+
+      lifetime_revenue:
+        label: Lifetime Revenue
+        format: currency_2
+        description: Total revenue generated by this customer over their entire history.
+        synonyms:
+          [
+            LTV,
+            lifetime value,
+            CLV,
+            customer lifetime value,
+            total spend,
+            lifetime spend
+          ]
+        ai_context: |
+          The total sum of all purchases by this customer. Primary metric for customer valuation. Higher LTV justifies higher CAC.
+
+      lifetime_orders:
+        label: Lifetime Orders
+        format: number_0
+        description: Total number of orders placed by this customer.
+        synonyms: [ total orders, purchase count, order history count, transaction count ]
+        ai_context: How many times this customer has purchased. Indicator of loyalty and
+          repeat behavior.
+
+      avg_order_value:
+        label: Customer AOV
+        format: currency_2
+        description: Average order value for this specific customer (lifetime revenue /
+          lifetime orders).
+        synonyms: [ personal AOV, customer avg spend, avg purchase amount ]
+        ai_context: This customer's average spend per order. Compare to global AOV for
+          customer quality assessment.
+
+      lifetime_margin:
+        label: Lifetime Margin
+        format: currency_2
+        description: Total gross margin generated by this customer.
+        synonyms: [ lifetime profit, customer profitability, CLV margin ]
+        ai_context: Total gross profit from this customer. Combines with LTV for true
+          customer profitability analysis.
+
+      first_order_date:
+        label: First Order Date
+        description: Date of this customer's first purchase.
+        synonyms: [ first purchase, acquisition date, first transaction, conversion date ]
+        ai_context: When this customer first purchased. Use for cohort analysis grouped
+          by acquisition month/quarter.
+
+      last_order_date:
+        label: Last Order Date
+        description: Date of this customer's most recent purchase.
+        synonyms: [ last purchase, most recent order, latest transaction ]
+        ai_context: Recency indicator. Compare to today for churn risk — longer gaps
+          mean higher risk.
+
+      ltv_tier:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts.lifetime_revenue}
+        bin_boundaries: [ 0, 50, 150, 500, 1000, 2500 ]
+        label: LTV Tier
+        description: Customer lifetime value segment.
+        synonyms: [ value tier, spend tier, customer value bucket, CLV segment ]
+        ai_context: |
+          Bins: $0-$50 (low), $50-$150 (developing), $150-$500 (mid-value), $500-$1000 (high-value), $1000-$2500 (VIP), $2500+ (whale). Use for targeted marketing and retention strategy.
+
+      customer_lifecycle_stage:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts.lifetime_orders}
+        groups:
+          - filter:
+              is: 1
+            name: One-Time Buyer
+          - filter:
+              less_than: 4
+            name: Developing (2-3 orders)
+          - filter:
+              less_than: 8
+            name: Loyal (4-7 orders)
+        else: Champion (8+ orders)
+        label: Customer Lifecycle Stage
+        description: Customer engagement tier based on purchase frequency.
+        synonyms:
+          [
+            loyalty tier,
+            engagement stage,
+            buyer stage,
+            retention stage,
+            frequency segment
+          ]
+        ai_context: |
+          Segments customers by purchase frequency: One-Time Buyer (1 order), Developing (2-3), Loyal (4-7), Champion (8+). Use for retention targeting — moving customers from One-Time to Developing is the biggest LTV unlock.
+
+      days_since_last_order:
+        sql: DATEDIFF('day', ${last_order_date}, CURRENT_DATE())
+        label: Days Since Last Order
+        format: number_0
+        description: Number of days since this customer last purchased.
+        synonyms: [ recency, days inactive, days since purchase, dormancy ]
+        ai_context: |
+          Recency metric for RFM analysis. Lower = more recently active. High values (90+) indicate churn risk.
+
+      order_frequency_tier:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts.lifetime_orders}
+        bin_boundaries: [ 0, 2, 3, 5, 10 ]
+        label: Order Frequency
+        description: Customer order frequency bucketed for analysis.
+        synonyms: [ purchase frequency, frequency bucket, repeat tier ]
+        ai_context: |
+          Bins: 1 (single purchase), 2, 3-4, 5-9, 10+ (power buyers). Frequency component of RFM scoring.
+
+      lifetime_margin_pct:
+        sql: ${lifetime_margin} / NULLIF(${lifetime_revenue}, 0)
+        label: Customer Margin %
+        format: percent_1
+        description: This customer's overall margin rate across all purchases.
+        synonyms: [ customer profitability rate, margin efficiency ]
+        ai_context: Some customers consistently buy high-margin items. Useful for
+          identifying profitable segments vs. discount-seekers.
+
+      is_repeat_customer:
+        sql: CASE WHEN ${lifetime_orders} > 1 THEN TRUE ELSE FALSE END
+        label: Is Repeat Customer
+        description: Whether this customer has purchased more than once.
+        synonyms: [ returning customer, repeat buyer, multi-purchaser ]
+        ai_context: TRUE if 2+ orders. Key segmentation for retention analysis.
+
+    measures:
+      customer_count:
+        label: Customer Count
+        format: number_0
+        description: Number of distinct customers.
+        drill_fields:
+          [
+            user_id,
+            lifetime_revenue,
+            lifetime_orders,
+            avg_order_value,
+            ltv_tier,
+            customer_lifecycle_stage
+          ]
+        aggregate_type: count
+        synonyms: [ user count, audience size, buyer count ]
+
+      avg_customer_ltv:
+        sql: ${lifetime_revenue}
+        label: Avg Customer LTV
+        format: currency_2
+        description: Average lifetime revenue per customer.
+        aggregate_type: average
+        synonyms: [ mean LTV, average lifetime value, avg CLV, average customer value ]
+        ai_context: Average revenue per customer. Use to benchmark customer acquisition
+          costs — CAC should be < LTV.
+
+      high_value_customer_count:
+        label: High-Value Customers
+        format: number_0
+        description: Number of customers with LTV above $500.
+        aggregate_type: count
+        filters:
+          lifetime_revenue:
+            greater_than: 500
+        synonyms: [ VIP count, top customers, whale count, premium customers ]
+        ai_context: Customers with $500+ lifetime spend. These are candidates for VIP
+          programs and exclusive offers.
+
+      avg_lifetime_orders:
+        sql: ${lifetime_orders}
+        label: Avg Orders per Customer
+        format: number_1
+        description: Average number of orders per customer.
+        aggregate_type: average
+        synonyms: [ purchase frequency, avg order frequency, mean orders per buyer ]
+        ai_context: Indicator of repeat purchase behavior and customer stickiness.
+          Higher = better retention.
+
+      median_ltv:
+        sql: ${lifetime_revenue}
+        label: Median Customer LTV
+        format: currency_2
+        description: Median lifetime value, robust to outlier whales.
+        aggregate_type: median
+        synonyms: [ typical LTV, middle customer value ]
+        ai_context: More representative than mean LTV since high-spenders skew the average.
+
+      repeat_customer_count:
+        label: Repeat Customers
+        format: number_0
+        description: Number of customers who have purchased more than once.
+        aggregate_type: count
+        filters:
+          is_repeat_customer:
+            is: true
+        synonyms: [ returning customers, multi-purchasers, loyal buyers ]
+
+      repeat_customer_pct:
+        sql: CASE WHEN ${lifetime_orders} > 1 THEN 1 ELSE 0 END
+        label: Repeat Customer %
+        format: percent_1
+        description: Percentage of customers who have made repeat purchases.
+        aggregate_type: average
+        synonyms: [ retention rate, repeat rate, loyalty rate ]
+        ai_context: |
+          Fraction of customers with 2+ orders. Industry benchmarks: 20-40% for fashion, 30-50% for consumables. Critical retention KPI.
+
+      churn_risk_count:
+        label: At-Risk Customers
+        format: number_0
+        description: Customers who haven't purchased in 90+ days.
+        aggregate_type: count
+        filters:
+          days_since_last_order:
+            greater_than: 90
+        synonyms: [ lapsed customers, dormant buyers, churn candidates ]
+        ai_context: Customers inactive for 90+ days. Target with win-back campaigns
+          before they fully churn.
+
+      avg_days_between_orders:
+        sql: DATEDIFF('day', ${first_order_date}, ${last_order_date}) /
+          NULLIF(${lifetime_orders} - 1, 0)
+        label: Avg Days Between Orders
+        format: number_0
+        description: Average inter-purchase interval for repeat customers.
+        aggregate_type: average
+        synonyms: [ purchase cadence, order frequency days, inter-purchase interval ]
+        ai_context: |
+          Average days between purchases for repeat buyers. Use to set re-engagement email timing and predict next-purchase windows.
+
+      total_lifetime_revenue:
+        sql: ${lifetime_revenue}
+        label: Total Lifetime Revenue
+        format: currency_2
+        description: Sum of all customer lifetime values.
+        aggregate_type: sum
+        synonyms: [ total CLV, aggregate LTV, customer base value ]
+
+    default_drill_fields:
+      [
+        lifetime_revenue,
+        lifetime_orders,
+        avg_order_value,
+        lifetime_margin,
+        first_order_date,
+        last_order_date,
+        ltv_tier,
+        customer_lifecycle_stage
+      ]
+
+  analytics_prod_coco_demo__oi_atl_2026_sv__order_facts:
+    label: Order Facts
+    description: |
+      Aggregated order-level metrics. One row per order with total revenue, item count, margin, and timestamps. Use for basket analysis, order-level segmentation, AOV reporting, and fulfillment performance at the order grain.
+
+    query:
+      fields:
+        analytics_prod_coco_demo__oi_atl_2026_sv__order_items.order_id: order_id
+        analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_revenue: order_revenue
+        analytics_prod_coco_demo__oi_atl_2026_sv__order_items.item_count: item_count
+        analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_margin: order_margin
+        analytics_prod_coco_demo__oi_atl_2026_sv__order_items.created_at[date]: order_created_at
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+
+    dimensions:
+      order_id:
+        label: Order ID
+        format: ID
+        description: Unique order identifier (one row per order).
+        primary_key: true
+        synonyms: [ transaction id, purchase id, order number ]
+
+      order_revenue:
+        label: Order Revenue
+        format: currency_2
+        description: Total revenue for this specific order (sum of all line item prices).
+        synonyms: [ order total, basket value, transaction amount, cart total, order amount ]
+        ai_context: Sum of all line item sale prices in this order. The true order-level
+          total.
+
+      item_count:
+        label: Items in Order
+        format: number_0
+        description: Number of line items in this order.
+        synonyms: [ basket size, order size, number of items, quantity, cart items ]
+        ai_context: How many distinct line items were in this order. Use for basket size
+          analysis.
+
+      order_margin:
+        label: Order Margin
+        format: currency_2
+        description: Total gross margin for this order.
+        synonyms: [ order profit, basket margin, transaction profit ]
+        ai_context: Sum of all item margins in this order. Order_revenue - sum of item
+          costs.
+
+      order_created_at:
+        label: Order Date
+        description: Date the order was placed.
+        synonyms: [ transaction date, purchase date, order timestamp ]
+
+      is_multi_item:
+        sql: CASE WHEN ${item_count} > 1 THEN TRUE ELSE FALSE END
+        label: Multi-Item Order
+        description: Whether this order contains more than one item.
+        synonyms: [ multi-SKU order, bundle order, multi-product order ]
+        ai_context: Boolean flag. TRUE = order has 2+ items. Use for basket composition
+          and cross-sell analysis.
+
+      order_size_bucket:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_facts.item_count}
+        groups:
+          - filter:
+              is: 1
+            name: Single Item
+          - filter:
+              less_than: 4
+            name: Small (2-3 items)
+          - filter:
+              less_than: 8
+            name: Medium (4-7 items)
+        else: Large (8+ items)
+        label: Basket Size
+        description: Categorizes orders by number of items.
+        synonyms: [ basket tier, order size category, cart size, basket bucket ]
+        ai_context: |
+          Groups orders by basket size: Single Item (1), Small (2-3), Medium (4-7), Large (8+). Use for cross-sell/upsell effectiveness analysis.
+
+      order_revenue_tier:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_facts.order_revenue}
+        bin_boundaries: [ 0, 25, 75, 150, 300, 500 ]
+        label: Order Value Tier
+        description: Categorizes orders by total revenue.
+        synonyms: [ value tier, spend bucket, revenue range, AOV tier ]
+        ai_context: |
+          Bins: Under $25 (micro), $25-$75 (small), $75-$150 (medium), $150-$300 (large), $300-$500 (high-value), $500+ (premium). Use for order value distribution analysis.
+
+      order_margin_pct:
+        sql: ${order_margin} / NULLIF(${order_revenue}, 0)
+        label: Order Margin %
+        format: percent_1
+        description: Gross margin percentage for this specific order.
+        synonyms: [ order profitability, basket margin rate ]
+        ai_context: Per-order profitability. Compare across segments to find high-margin
+          order profiles.
+
+      has_return:
+        sql: CASE WHEN ${order_margin} < 0 THEN TRUE ELSE FALSE END
+        label: Negative Margin Order
+        description: Whether this order has negative margin (likely due to returns or
+          heavy discounting).
+        synonyms: [ unprofitable order, loss order ]
+
+    measures:
+      total_orders:
+        label: Total Orders
+        format: number_0
+        description: Total number of orders.
+        drill_fields:
+          [
+            order_id,
+            order_revenue,
+            item_count,
+            order_created_at,
+            order_size_bucket,
+            order_revenue_tier
+          ]
+        aggregate_type: count
+        synonyms: [ order volume, transaction count, number of orders ]
+
+      avg_order_revenue:
+        sql: ${order_revenue}
+        label: Avg Order Value (AOV)
+        format: currency_2
+        description: Average total revenue per order — the true AOV calculated at order
+          grain.
+        drill_fields: [ order_id, order_revenue, item_count, order_size_bucket ]
+        aggregate_type: average
+        synonyms:
+          [
+            true AOV,
+            average basket value,
+            average order total,
+            average transaction value
+          ]
+        ai_context: |
+          True average order value calculated at order grain (not line-item grain). The definitive AOV metric. More accurate than line-item level averages.
+
+      avg_items_per_order:
+        sql: ${item_count}
+        label: Avg Items per Order
+        format: number_1
+        description: Average number of items per order.
+        aggregate_type: average
+        synonyms:
+          [
+            avg basket size,
+            mean items per basket,
+            avg cart size,
+            units per transaction
+          ]
+        ai_context: Average basket composition. Higher = better cross-sell performance.
+
+      multi_item_order_pct:
+        sql: CASE WHEN ${item_count} > 1 THEN 1 ELSE 0 END
+        label: Multi-Item Order %
+        format: percent_1
+        description: Percentage of orders containing more than one item.
+        aggregate_type: average
+        synonyms: [ multi-item rate, bundle rate, cross-sell rate ]
+        ai_context: |
+          Fraction of orders with 2+ items. Higher indicates effective cross-selling. Industry benchmark varies by category (30-60% for fashion).
+
+      median_order_revenue:
+        sql: ${order_revenue}
+        label: Median Order Value
+        format: currency_2
+        description: Median order value, robust to outliers from bulk orders.
+        aggregate_type: median
+        synonyms: [ median basket, typical order value, middle order value ]
+        ai_context: More representative than mean AOV since outlier bulk orders skew the
+          average upward.
+
+      large_order_count:
+        label: Large Orders (8+ items)
+        format: number_0
+        description: Number of orders with 8 or more items.
+        aggregate_type: count
+        filters:
+          item_count:
+            greater_than: 7
+        synonyms: [ big basket count, bulk orders, large baskets ]
+
+      high_value_order_count:
+        label: High-Value Orders ($300+)
+        format: number_0
+        description: Number of orders with revenue exceeding $300.
+        aggregate_type: count
+        filters:
+          order_revenue:
+            greater_than: 300
+        synonyms: [ premium orders, high-spend transactions, big-ticket orders ]
+        ai_context: Orders above $300. Track these for VIP fulfillment SLA and premium
+          customer experience.
+
+      total_order_revenue:
+        sql: ${order_revenue}
+        label: Total Order Revenue
+        format: currency_2
+        description: Sum of all order revenues.
+        aggregate_type: sum
+        synonyms: [ total basket value, aggregate revenue ]
+
+      total_order_margin:
+        sql: ${order_margin}
+        label: Total Order Margin
+        format: currency_2
+        description: Sum of all order margins.
+        aggregate_type: sum
+        synonyms: [ total order profit, aggregate basket margin ]
+
+      avg_order_margin:
+        sql: ${order_margin}
+        label: Avg Order Margin
+        format: currency_2
+        description: Average margin per order.
+        aggregate_type: average
+        synonyms: [ mean order profit, avg basket margin ]
+
+      avg_order_margin_pct:
+        sql: CASE WHEN ${order_revenue} > 0 THEN ${order_margin} / ${order_revenue} ELSE
+          0 END
+        label: Avg Order Margin %
+        format: percent_1
+        description: Average margin rate across all orders.
+        aggregate_type: average
+        synonyms: [ mean margin rate, avg profitability ]
+
+    default_drill_fields:
+      [
+        order_id,
+        order_revenue,
+        item_count,
+        order_margin,
+        order_created_at,
+        order_size_bucket,
+        order_revenue_tier
+      ]
+
+relationships:
+  - join_from_view: analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items
+    join_to_view: analytics_prod_coco_demo__oi_atl_2026_sv__products
+    id: inventory_items_to_products
+    join_type: always_left
+    on_sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_id}
+      = ${analytics_prod_coco_demo__oi_atl_2026_sv__products.id}
+    relationship_type: many_to_one
+
+  - join_from_view: analytics_prod_coco_demo__oi_atl_2026_sv__order_items
+    join_to_view: analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items
+    id: order_items_to_inventory_items
+    join_type: always_left
+    on_sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_items.inventory_item_id}
+      = ${analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.id}
+    relationship_type: many_to_one
+
+  - join_from_view: analytics_prod_coco_demo__oi_atl_2026_sv__order_items
+    join_to_view: analytics_prod_coco_demo__oi_atl_2026_sv__users
+    id: order_items_to_users
+    join_type: always_left
+    on_sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_items.user_id} =
+      ${analytics_prod_coco_demo__oi_atl_2026_sv__users.id}
+    relationship_type: many_to_one
+
+  - join_from_view: analytics_prod_coco_demo__oi_atl_2026_sv__products
+    join_to_view: analytics_prod_coco_demo__oi_atl_2026_sv__distribution_centers
+    id: products_to_distribution_centers
+    join_type: always_left
+    on_sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__products.distribution_center_id}
+      = ${analytics_prod_coco_demo__oi_atl_2026_sv__distribution_centers.id}
+    relationship_type: many_to_one
+
+  - join_from_view: analytics_prod_coco_demo__oi_atl_2026_sv__order_items
+    join_to_view: analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts
+    join_type: always_left
+    on_sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_items.user_id} =
+      ${analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts.user_id}
+    relationship_type: many_to_one
+
+  - join_from_view: analytics_prod_coco_demo__oi_atl_2026_sv__order_items
+    join_to_view: analytics_prod_coco_demo__oi_atl_2026_sv__order_facts
+    join_type: always_left
+    on_sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_items.order_id} =
+      ${analytics_prod_coco_demo__oi_atl_2026_sv__order_facts.order_id}
+    relationship_type: many_to_one
+
+ai_context: |
+  This is an ecommerce analytics topic for a direct-to-consumer (DTC) retail business selling apparel, accessories, and lifestyle products. The primary fact table is order_items (one row per line item in an order).
+
+  **Entity relationships:**
+  - Users are customers who register and place orders
+  - Orders contain one or more line items (order_items)
+  - Each line item links to an inventory item, which links to a product in the catalog
+  - Products belong to brands, categories, and departments
+  - Products are stocked in distribution centers
+
+  **Key business metrics and how to find them:**
+  - Revenue → order_items.total_revenue (sum of sale_price)
+  - Profit/margin → order_items.total_margin or order_items.gross_margin_pct
+  - Average order value (AOV) → order_facts.avg_order_revenue (TRUE AOV at order grain, NOT order_items.avg_order_value which is line-item level)
+  - Customer lifetime value → user_lifetime_facts.lifetime_revenue or user_lifetime_facts.avg_customer_ltv
+  - Return rate → order_items.return_rate
+  - Basket size → order_facts.avg_items_per_order or order_facts.order_size_bucket
+  - Shipping performance → order_items.avg_time_to_ship or order_items.shipping_speed
+  - Customer count → users.customer_count
+  - Inventory health → inventory_items.sell_through_rate or inventory_items.avg_days_in_inventory
+
+  **Important disambiguation:**
+  - "AOV" should use order_facts.avg_order_revenue (order-grain, accurate) not order_items.avg_order_value (line-item grain, inflated)
+  - "Revenue" means order_items.total_revenue unless the user specifies completed/returned/net
+  - "Customers" queries should include users.customer_count or user_lifetime_facts.customer_count
+  - "New customers" = customer_lifecycle_stage = 'One-Time Buyer' or customer_tenure_at_purchase = 'New (0-1 months)'
+  - "Returning/repeat customers" = user_lifetime_facts.is_repeat_customer = TRUE
+  - "Product category" is on inventory_items (not products) for transaction-level analysis
+
+  **When to use each query view:**
+  - user_lifetime_facts: For customer-level aggregates (LTV, frequency, recency, segmentation). One row per customer.
+  - order_facts: For order-level aggregates (true AOV, basket size, order margin). One row per order.
+
+  **Seasonality & trends:** Use order_items.created_at with date granularity (month, week, quarter) for trend analysis. order_day_of_week for day-of-week patterns.
+
+sample_queries:
+  revenue_by_category:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_category,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_revenue
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      sorts:
+        - field: analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_revenue
+          desc: true
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Total revenue broken down by product category, sorted highest to lowest
+    prompt: What is total revenue by product category?
+  return_rate_by_brand:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_brand,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.return_rate
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      sorts:
+        - field: analytics_prod_coco_demo__oi_atl_2026_sv__order_items.return_rate
+          desc: true
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Return rate for each brand to identify problem products
+    prompt: What is the return rate by brand?
+  monthly_order_trend:
+    query:
+      fields:
+        [
+          "analytics_prod_coco_demo__oi_atl_2026_sv__order_items.created_at[m\
+            onth]",
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.order_count
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Monthly order count trend
+    prompt: How many orders were placed each month?
+  aov_by_age_group:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__users.age_group,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_facts.avg_order_revenue
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: True average order value segmented by customer age group
+    prompt: What is the average order value by customer age group?
+  revenue_by_traffic_source:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__users.traffic_source,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_revenue
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      sorts:
+        - field: analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_revenue
+          desc: true
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Revenue attribution by customer acquisition channel
+    prompt: Which traffic sources drive the most revenue?
+  ltv_distribution:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts.ltv_tier,
+          analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts.customer_count
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Customer count by lifetime value tier for segmentation
+    prompt: What is the customer lifetime value distribution?
+  multi_item_order_rate:
+    query:
+      fields: [ analytics_prod_coco_demo__oi_atl_2026_sv__order_facts.multi_item_order_pct ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Percentage of orders with multiple items
+    prompt: What percentage of orders have multiple items?
+  basket_size_by_department:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_department,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_facts.avg_items_per_order
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Average items per order by product department
+    prompt: What is the average basket size by product department?
+  monthly_revenue_trend:
+    query:
+      fields:
+        [
+          "analytics_prod_coco_demo__oi_atl_2026_sv__order_items.created_at[m\
+            onth]",
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_revenue,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.order_count
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Monthly revenue and order count trend over time
+    prompt: Show me monthly revenue and order trends
+  revenue_by_channel:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__users.traffic_source,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_revenue,
+          analytics_prod_coco_demo__oi_atl_2026_sv__users.customer_count
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      sorts:
+        - field: analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_revenue
+          desc: true
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Revenue and customer count by acquisition channel
+    prompt: Which traffic sources drive the most revenue?
+  basket_analysis:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_facts.order_size_bucket,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_facts.total_orders,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_facts.avg_order_revenue
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Order count and AOV by basket size category
+    prompt: How does basket size affect average order value?
+  customer_retention:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts.customer_lifecycle_stage,
+          analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts.customer_count,
+          analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts.avg_customer_ltv
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Customer count and average LTV by lifecycle stage
+    prompt: How are customers distributed across lifecycle stages and what is their
+      average lifetime value?
+  margin_by_department:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_department,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_revenue,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_margin,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.gross_margin_pct
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Revenue, margin, and margin % by product department
+    prompt: What is the profitability by department?
+  shipping_performance:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.shipping_speed,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.item_count,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.return_rate
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Item count and return rate by shipping speed tier
+    prompt: Does shipping speed affect return rates?
+  inventory_health:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.inventory_age_bucket,
+          analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.inventory_count,
+          analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.sell_through_rate
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Inventory count and sell-through rate by age bucket
+    prompt: What does our inventory aging look like?
+  new_vs_repeat_revenue:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.customer_tenure_at_purchase,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.total_revenue,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.order_count
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Revenue and orders from new vs established vs loyal customers
+    prompt: How much revenue comes from new customers versus returning customers?
+  churn_risk:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts.ltv_tier,
+          analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts.churn_risk_count,
+          analytics_prod_coco_demo__oi_atl_2026_sv__user_lifetime_facts.customer_count
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: At-risk customers by LTV tier to prioritize win-back efforts
+    prompt: Which high-value customer segments have the most churn risk?
+  price_sensitivity:
+    query:
+      fields:
+        [
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.sale_price_tier,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.item_count,
+          analytics_prod_coco_demo__oi_atl_2026_sv__order_items.return_rate
+        ]
+      base_view: analytics_prod_coco_demo__oi_atl_2026_sv
+      topic: analytics_prod_coco_demo__oi_atl_2026_sv
+    description: Item volume and return rate by price point to analyze price sensitivity
+    prompt: How does price point affect sales volume and returns?
