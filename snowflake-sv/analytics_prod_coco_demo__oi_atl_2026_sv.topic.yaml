@@ -1,6 +1,6 @@
 # Topic is generated from the semantic view ANALYTICS_PROD.COCO_DEMO.OI_ATL_2026_SV
 semantic_view: ANALYTICS_PROD.COCO_DEMO.OI_ATL_2026_SV
-label: Ecommerce Deep Model
+label: Ecommerce DeepM
 description: |
   Comprehensive e-commerce analytics model supporting the full order lifecycle — acquisition, purchase, fulfillment, delivery, and returns. Primary grain is order line items (order_items) with supporting dimensions for products, users, inventory, distribution centers, and derived fact tables for customer LTV and order-level aggregates. Designed for deep cohort analysis, customer segmentation, basket analytics, margin optimization, and fulfillment performance reporting.
 
