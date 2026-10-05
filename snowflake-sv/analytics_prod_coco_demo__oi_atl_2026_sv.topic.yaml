@@ -1728,7 +1728,6 @@ views:
 relationships:
   - join_from_view: analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items
     join_to_view: analytics_prod_coco_demo__oi_atl_2026_sv__products
-    id: inventory_items_to_products
     join_type: always_left
     on_sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.product_id}
       = ${analytics_prod_coco_demo__oi_atl_2026_sv__products.id}
@@ -1736,7 +1735,6 @@ relationships:
 
   - join_from_view: analytics_prod_coco_demo__oi_atl_2026_sv__order_items
     join_to_view: analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items
-    id: order_items_to_inventory_items
     join_type: always_left
     on_sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_items.inventory_item_id}
       = ${analytics_prod_coco_demo__oi_atl_2026_sv__inventory_items.id}
@@ -1744,7 +1742,6 @@ relationships:
 
   - join_from_view: analytics_prod_coco_demo__oi_atl_2026_sv__order_items
     join_to_view: analytics_prod_coco_demo__oi_atl_2026_sv__users
-    id: order_items_to_users
     join_type: always_left
     on_sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__order_items.user_id} =
       ${analytics_prod_coco_demo__oi_atl_2026_sv__users.id}
@@ -1752,7 +1749,6 @@ relationships:
 
   - join_from_view: analytics_prod_coco_demo__oi_atl_2026_sv__products
     join_to_view: analytics_prod_coco_demo__oi_atl_2026_sv__distribution_centers
-    id: products_to_distribution_centers
     join_type: always_left
     on_sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__products.distribution_center_id}
       = ${analytics_prod_coco_demo__oi_atl_2026_sv__distribution_centers.id}
