@@ -1000,6 +1000,13 @@ views:
         description: Average product cost from the catalog.
         aggregate_type: average
 
+      id_count_distinct:
+        sql: ${analytics_prod_coco_demo__oi_atl_2026_sv__products.id}
+        label: Product ID Count Distinct
+        description: "(Count Distinct) Product ID: Unique product identifier in the
+          catalog."
+        aggregate_type: count_distinct
+
   analytics_prod_coco_demo__oi_atl_2026_sv__users:
     label: Customers
     display_order: 1
