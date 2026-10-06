@@ -16,18 +16,6 @@ views:
     table_name: WC_FIXTURES
 
     dimensions:
-      went_to_extra_time:
-        sql: '"ET_HOME" IS NOT NULL OR "ET_AWAY" IS NOT NULL'
-        description: Whether the match went to extra time
-        hidden: true
-
-      went_to_penalties:
-        sql: ${analytics_prod_coco_demo__world_cup_sv__wc_fixtures.pen_home} IS NOT NULL
-          OR ${analytics_prod_coco_demo__world_cup_sv__wc_fixtures.pen_away} IS
-          NOT NULL
-        description: Whether the match was decided by a penalty shootout
-        hidden: true
-
       away_team:
         sql: '"AWAY_TEAM"'
         description: Name of the away team
@@ -102,6 +90,18 @@ views:
         sql: '"VENUE_NAME"'
         description: Name of the stadium
         synonyms: [ ground, stadium ]
+
+      went_to_extra_time:
+        sql: '"ET_HOME" IS NOT NULL OR "ET_AWAY" IS NOT NULL'
+        description: Whether the match went to extra time
+        hidden: true
+
+      went_to_penalties:
+        sql: ${analytics_prod_coco_demo__world_cup_sv__wc_fixtures.pen_home} IS NOT NULL
+          OR ${analytics_prod_coco_demo__world_cup_sv__wc_fixtures.pen_away} IS
+          NOT NULL
+        description: Whether the match was decided by a penalty shootout
+        hidden: true
 
     measures:
       average_goals_per_match:
@@ -307,16 +307,6 @@ views:
     table_name: WC_PLAYER_STATS
 
     dimensions:
-      is_captain:
-        sql: '"GAMES_CAPTAIN" = TRUE'
-        description: Whether the player was team captain
-        hidden: true
-
-      is_substitute:
-        sql: '"GAMES_SUBSTITUTE" = TRUE'
-        description: Whether the player came on as a substitute
-        hidden: true
-
       cards_red:
         sql: '"CARDS_RED"'
         description: Red cards received
@@ -421,6 +411,16 @@ views:
       team_name:
         sql: '"TEAM_NAME"'
         description: Name of the player national team
+
+      is_captain:
+        sql: '"GAMES_CAPTAIN" = TRUE'
+        description: Whether the player was team captain
+        hidden: true
+
+      is_substitute:
+        sql: '"GAMES_SUBSTITUTE" = TRUE'
+        description: Whether the player came on as a substitute
+        hidden: true
 
     measures:
       assists_total:
