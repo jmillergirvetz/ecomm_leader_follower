@@ -1,8 +1,9 @@
 # Topic is generated from the semantic view ANALYTICS_PROD.COCO_DEMO.STREAMING_ANALYTICS
 semantic_view: ANALYTICS_PROD.COCO_DEMO.STREAMING_ANALYTICS
 label: Streaming Analytics
-description: |
-  Podcast streaming analytics: user listening behavior, engagement, drop-off rates, and content performance. Covers streams (listen events with completion data), podcasts (content catalog), and users (listener profiles and churn).
+description: "Podcast streaming analytics: user listening behavior, engagement,
+  drop-off rates, and content performance. Covers streams (listen events with
+  completion data), podcasts (content catalog), and users (listener profiles)."
 
 views:
   analytics_prod_coco_demo__streaming_analytics__podcasts:
@@ -14,22 +15,6 @@ views:
     table_name: PODCASTS
 
     dimensions:
-      avg_episode_length_min:
-        sql: '"AVG_EPISODE_LENGTH_MIN"'
-        description: Average duration of episodes in minutes
-
-      episode_count:
-        sql: '"EPISODE_COUNT"'
-        description: Total episodes published for this podcast
-
-      rating:
-        sql: '"RATING"'
-        description: User rating (1-5 scale)
-
-      subscriber_count:
-        sql: '"SUBSCRIBER_COUNT"'
-        description: Number of subscribers to this podcast
-
       genre:
         sql: '"GENRE"'
         description: Primary content category
@@ -70,6 +55,22 @@ views:
         description: Podcast show name
         synonyms: [ podcast name, show name ]
 
+      avg_episode_length_min:
+        sql: '"AVG_EPISODE_LENGTH_MIN"'
+        description: Average duration of episodes in minutes
+
+      episode_count:
+        sql: '"EPISODE_COUNT"'
+        description: Total episodes published for this podcast
+
+      rating:
+        sql: '"RATING"'
+        description: User rating (1-5 scale)
+
+      subscriber_count:
+        sql: '"SUBSCRIBER_COUNT"'
+        description: Number of subscribers to this podcast
+
     measures:
       avg_rating:
         sql: AVG(${analytics_prod_coco_demo__streaming_analytics__podcasts.rating})
@@ -102,35 +103,6 @@ views:
     table_name: STREAMS
 
     dimensions:
-      completion_pct:
-        sql: '"COMPLETION_PCT"'
-        description: Percentage of the episode the user completed (0-100)
-
-      episode_length_min:
-        sql: '"EPISODE_LENGTH_MIN"'
-        description: Total duration of the episode in minutes
-
-      is_bounce:
-        sql: ${analytics_prod_coco_demo__streaming_analytics__streams.completion_pct} <
-          25
-        description: Stream where user dropped off before 25% of the episode
-        hidden: true
-
-      is_completed:
-        sql: ${analytics_prod_coco_demo__streaming_analytics__streams.completion_pct} >=
-          90
-        description: Stream where user listened to 90%+ of the episode
-        hidden: true
-
-      is_downloaded:
-        sql: '"DOWNLOADED" = TRUE'
-        description: Episode was downloaded for offline listening
-        hidden: true
-
-      listened_min:
-        sql: '"LISTENED_MIN"'
-        description: How many minutes the user actually listened
-
       completion_bucket:
         sql: CASE WHEN
           ${analytics_prod_coco_demo__streaming_analytics__streams.completion_pct}
@@ -163,6 +135,35 @@ views:
       stream_id:
         sql: '"STREAM_ID"'
         description: Unique stream event identifier
+
+      completion_pct:
+        sql: '"COMPLETION_PCT"'
+        description: Percentage of the episode the user completed (0-100)
+
+      episode_length_min:
+        sql: '"EPISODE_LENGTH_MIN"'
+        description: Total duration of the episode in minutes
+
+      is_bounce:
+        sql: ${analytics_prod_coco_demo__streaming_analytics__streams.completion_pct} <
+          25
+        description: Stream where user dropped off before 25% of the episode
+        hidden: true
+
+      is_completed:
+        sql: ${analytics_prod_coco_demo__streaming_analytics__streams.completion_pct} >=
+          90
+        description: Stream where user listened to 90%+ of the episode
+        hidden: true
+
+      is_downloaded:
+        sql: '"DOWNLOADED" = TRUE'
+        description: Episode was downloaded for offline listening
+        hidden: true
+
+      listened_min:
+        sql: '"LISTENED_MIN"'
+        description: How many minutes the user actually listened
 
       podcast_id:
         sql: '"PODCAST_ID"'
@@ -249,7 +250,7 @@ views:
 
   analytics_prod_coco_demo__streaming_analytics__users:
     label: Users
-    description: Listener profiles with subscription tier, demographics, and churn data
+    description: Listener profiles with demographics, location, and acquisition source
 
     catalog: ANALYTICS_PROD
     schema: COCO_DEMO
@@ -269,22 +270,21 @@ views:
         sql: '"GENDER"'
         description: User gender
 
+      state:
+        sql: '"STATE"'
+        description: User state
+
+      id:
+        sql: '"ID"'
+        hidden: true
+
     measures:
       count:
         aggregate_type: count
 
     filters:
-      is_active__filter:
-        type: boolean
-        label: Is Active
-        group_label: Filters
-        description: User currently has an active subscription
-
-      is_churned__filter:
-        type: boolean
-        label: Is Churned
-        group_label: Filters
-        description: User has canceled their subscription
+      is_active__filter: {}
+      is_churned__filter: {}
 
 relationships:
   - join_from_view: analytics_prod_coco_demo__streaming_analytics__streams
@@ -298,11 +298,11 @@ relationships:
     join_to_view: analytics_prod_coco_demo__streaming_analytics__users
     join_type: always_left
     on_sql: ${analytics_prod_coco_demo__streaming_analytics__streams.user_id} =
-      ${analytics_prod_coco_demo__streaming_analytics__users.user_id}
+      ${analytics_prod_coco_demo__streaming_analytics__users.id}
     relationship_type: many_to_one
 
 ai_context: |-
   Use these instructions for question categorization: Podcast streaming analytics: user listening behavior, engagement, drop-off rates, and content performance.
   KEY METRICS: 'streams' or 'listens' → total_streams; 'listening time' → total_listened_minutes; 'completion rate' → avg_completion_rate; 'drop-off' or 'bounce' → bounced_streams; 'unique listeners' → unique_listeners.
-  SEGMENTATION: by genre, network, tier (free/premium/family), age_bucket, country, device_type, listening_context, completion_bucket.
-  CHURN: 'churned users' → churned_users; 'churn reason' → cancel_reason; 'retention' → avg_tenure_days.
+  SEGMENTATION: by genre, network, age_bucket, country, state, gender, referral_source, listening_context, completion_bucket.
+  RETENTION: 'tenure' → avg_tenure_days. Subscription tier and churn data are not available.
